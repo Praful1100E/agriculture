@@ -39,10 +39,154 @@ Builder.load_string("""
         MDTopAppBar:
             title: "👤 Profile"
             left_action_items: [["arrow-left", lambda x: root.go_back()]]
-        MDLabel:
-            text: "Profile management coming soon!"
-            halign: "center"
-            font_style: "Subtitle1"
+        MDScrollView:
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "15dp"
+                padding: "20dp"
+                size_hint_y: None
+                height: self.minimum_height
+
+                MDCard:
+                    size_hint_y: None
+                    height: "120dp"
+                    elevation: 5
+                    radius: [15]
+                    padding: "20dp"
+                    md_bg_color: (0.2, 0.7, 0.2, 1)
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        spacing: "5dp"
+                        MDLabel:
+                            id: profile_name
+                            text: "Loading..."
+                            halign: "center"
+                            font_style: "H5"
+                            bold: True
+                            theme_text_color: "Custom"
+                            text_color: (1, 1, 1, 1)
+                        MDLabel:
+                            id: profile_role
+                            text: ""
+                            halign: "center"
+                            font_style: "Subtitle1"
+                            theme_text_color: "Custom"
+                            text_color: (1, 1, 1, 0.9)
+
+                MDCard:
+                    size_hint_y: None
+                    height: "200dp"
+                    elevation: 3
+                    radius: [10]
+                    padding: "15dp"
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        spacing: "10dp"
+                        MDLabel:
+                            text: "📞 Contact Information"
+                            font_style: "H6"
+                            theme_text_color: "Primary"
+                        
+                        MDBoxLayout:
+                            orientation: "horizontal"
+                            size_hint_y: None
+                            height: "40dp"
+                            MDLabel:
+                                text: "Phone:"
+                                font_style: "Body1"
+                                bold: True
+                                size_hint_x: 0.3
+                            MDLabel:
+                                id: profile_phone
+                                text: ""
+                                font_style: "Body1"
+                                size_hint_x: 0.7
+                        
+                        MDBoxLayout:
+                            orientation: "horizontal"
+                            size_hint_y: None
+                            height: "40dp"
+                            MDLabel:
+                                text: "Email:"
+                                font_style: "Body1"
+                                bold: True
+                                size_hint_x: 0.3
+                            MDLabel:
+                                id: profile_email
+                                text: ""
+                                font_style: "Body1"
+                                size_hint_x: 0.7
+                        
+                        MDBoxLayout:
+                            orientation: "horizontal"
+                            size_hint_y: None
+                            height: "40dp"
+                            MDLabel:
+                                text: "Location:"
+                                font_style: "Body1"
+                                bold: True
+                                size_hint_x: 0.3
+                            MDLabel:
+                                id: profile_location
+                                text: ""
+                                font_style: "Body1"
+                                size_hint_x: 0.7
+
+                MDCard:
+                    size_hint_y: None
+                    height: "150dp"
+                    elevation: 3
+                    radius: [10]
+                    padding: "15dp"
+                    MDBoxLayout:
+                        orientation: "vertical"
+                        spacing: "10dp"
+                        MDLabel:
+                            text: "📊 Account Statistics"
+                            font_style: "H6"
+                            theme_text_color: "Primary"
+                        
+                        MDBoxLayout:
+                            orientation: "horizontal"
+                            spacing: "20dp"
+                            MDBoxLayout:
+                                orientation: "vertical"
+                                size_hint_x: 0.5
+                                MDLabel:
+                                    id: products_count
+                                    text: "0"
+                                    halign: "center"
+                                    font_style: "H5"
+                                    bold: True
+                                    theme_text_color: "Primary"
+                                MDLabel:
+                                    text: "Products Listed"
+                                    halign: "center"
+                                    font_style: "Caption"
+                                    theme_text_color: "Secondary"
+                            
+                            MDBoxLayout:
+                                orientation: "vertical"
+                                size_hint_x: 0.5
+                                MDLabel:
+                                    id: orders_count
+                                    text: "0"
+                                    halign: "center"
+                                    font_style: "H5"
+                                    bold: True
+                                    theme_text_color: "Primary"
+                                MDLabel:
+                                    text: "Total Orders"
+                                    halign: "center"
+                                    font_style: "Caption"
+                                    theme_text_color: "Secondary"
+
+                MDRaisedButton:
+                    text: "✏️ Edit Profile"
+                    size_hint_y: None
+                    height: "50dp"
+                    on_release: root.edit_profile()
+                    pos_hint: {"center_x": 0.5}
 
 <MarketPricesScreen>:
     MDBoxLayout:
@@ -121,7 +265,82 @@ class ProfileScreen(Screen):
     def __init__(self, app=None, **kwargs):
         super().__init__(**kwargs)
         self.app = app
-    
+
+    def on_enter(self):
+        self.load_profile()
+
+    def load_profile(self):
+        """Load and display user profile information"""
+        if not self.app.store.exists("session"):
+            self.ids.profile_name.text = "Not logged in"
+            return
+
+        session = self.app.store.get("session")
+        phone = session["phone"]
+        role = session["role"]
+
+        # Get user details from database
+        try:
+            # Get user info
+            conn = self.app.db_manager.get_connection()
+            c = conn.cursor()
+            c.execute("SELECT name, email, location FROM users WHERE phone = ?", (phone,))
+            user_data = c.fetchone()
+            conn.close()
+
+            if user_data:
+                name, email, location = user_data
+                self.ids.profile_name.text = name or "Unknown"
+                self.ids.profile_role.text = f"🌾 {role.title()}" if role == "seller" else f"🛒 {role.title()}"
+                self.ids.profile_phone.text = phone
+                self.ids.profile_email.text = self.mask_email(email) if email else "Not provided"
+                self.ids.profile_location.text = location or "Not specified"
+            else:
+                self.ids.profile_name.text = "User not found"
+
+            # Load statistics
+            self.load_statistics(phone, role)
+
+        except Exception as e:
+            print(f"Error loading profile: {e}")
+            self.ids.profile_name.text = "Error loading profile"
+
+    def mask_email(self, email):
+        """Mask email to show only first few characters"""
+        if not email or '@' not in email:
+            return email
+        username, domain = email.split('@', 1)
+        if len(username) <= 3:
+            return f"{username}@{domain}"
+        return f"{username[:3]}***@{domain}"
+
+    def load_statistics(self, phone, role):
+        """Load user statistics"""
+        try:
+            if role == "seller":
+                # Count products
+                products = self.app.db_manager.get_user_products(phone)
+                self.ids.products_count.text = str(len(products))
+
+                # Count orders (seller orders)
+                orders = self.app.db_manager.get_user_orders(phone, role)
+                self.ids.orders_count.text = str(len(orders))
+            else:
+                # For buyers, show different stats
+                self.ids.products_count.text = "N/A"
+                orders = self.app.db_manager.get_user_orders(phone, role)
+                self.ids.orders_count.text = str(len(orders))
+
+        except Exception as e:
+            print(f"Error loading statistics: {e}")
+            self.ids.products_count.text = "0"
+            self.ids.orders_count.text = "0"
+
+    def edit_profile(self):
+        """Navigate to edit profile screen (placeholder)"""
+        from kivymd.uix.snackbar import Snackbar
+        Snackbar(text="Edit profile functionality coming soon!").open()
+
     def go_back(self):
         self.app.go_back_to_dashboard()
 

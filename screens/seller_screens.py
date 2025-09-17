@@ -83,10 +83,15 @@ Builder.load_string("""
         MDTopAppBar:
             title: "📦 My Products"
             left_action_items: [["arrow-left", lambda x: root.go_back()]]
-        MDLabel:
-            text: "Your products will be displayed here.\\n\\nAdd products to see them in this list."
-            halign: "center"
-            font_style: "Subtitle1"
+            right_action_items: [["refresh", lambda x: root.load_products()]]
+        MDScrollView:
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "10dp"
+                padding: "15dp"
+                size_hint_y: None
+                height: self.minimum_height
+                id: products_container
 
 <AddProductScreen>:
     MDBoxLayout:
@@ -221,7 +226,194 @@ class ProductListScreen(Screen):
     def __init__(self, app=None, **kwargs):
         super().__init__(**kwargs)
         self.app = app
-    
+
+    def on_enter(self):
+        self.load_products()
+
+    def load_products(self):
+        """Load and display user's products"""
+        if not self.app.store.exists("session"):
+            show_snackbar("Please login first")
+            return
+
+        phone = self.app.store.get("session")["phone"]
+        products = self.app.db_manager.get_user_products(phone)
+
+        # Clear existing products
+        self.ids.products_container.clear_widgets()
+
+        if not products:
+            # Show empty state
+            from kivymd.uix.label import MDLabel
+            empty_label = MDLabel(
+                text="No products found.\\n\\nAdd products to see them here.",
+                halign="center",
+                font_style="Subtitle1",
+                theme_text_color="Secondary"
+            )
+            self.ids.products_container.add_widget(empty_label)
+            return
+
+        # Display products
+        for product in products:
+            self.add_product_card(product)
+
+    def add_product_card(self, product):
+        """Add a product card to the container"""
+        from kivymd.uix.card import MDCard
+        from kivymd.uix.boxlayout import MDBoxLayout
+        from kivymd.uix.label import MDLabel
+        from kivymd.uix.button import MDRaisedButton
+
+        # Product card
+        card = MDCard(
+            size_hint_y=None,
+            height="150dp",
+            elevation=3,
+            radius=[8],
+            padding="12dp"
+        )
+
+        # Main layout
+        main_layout = MDBoxLayout(
+            orientation="vertical",
+            spacing="8dp"
+        )
+
+        # Product name and category
+        title_layout = MDBoxLayout(
+            orientation="horizontal",
+            size_hint_y=None,
+            height="30dp"
+        )
+
+        name_label = MDLabel(
+            text=f"{product[2]}",  # name
+            font_style="H6",
+            bold=True,
+            size_hint_x=0.7
+        )
+
+        category_label = MDLabel(
+            text=f"{product[4]}",  # category
+            font_style="Caption",
+            halign="right",
+            theme_text_color="Secondary",
+            size_hint_x=0.3
+        )
+
+        title_layout.add_widget(name_label)
+        title_layout.add_widget(category_label)
+
+        # Details layout
+        details_layout = MDBoxLayout(
+            orientation="horizontal",
+            size_hint_y=None,
+            height="40dp",
+            spacing="10dp"
+        )
+
+        # Price
+        price_label = MDLabel(
+            text=f"₹{product[7]:.2f}/{product[6]}",  # price/unit
+            font_style="Subtitle1",
+            theme_text_color="Primary",
+            size_hint_x=0.3
+        )
+
+        # Stock
+        stock_label = MDLabel(
+            text=f"Stock: {product[8]} {product[6]}",  # stock_qty unit
+            font_style="Body2",
+            size_hint_x=0.4
+        )
+
+        # Status
+        status_label = MDLabel(
+            text=f"Status: {product[10] or 'Active'}",  # status
+            font_style="Body2",
+            halign="right",
+            size_hint_x=0.3
+        )
+
+        details_layout.add_widget(price_label)
+        details_layout.add_widget(stock_label)
+        details_layout.add_widget(status_label)
+
+        # Description (if exists)
+        if product[9]:  # description
+            desc_label = MDLabel(
+                text=product[9][:100] + "..." if len(product[9]) > 100 else product[9],
+                font_style="Body2",
+                theme_text_color="Secondary",
+                size_hint_y=None,
+                height="30dp"
+            )
+            main_layout.add_widget(desc_label)
+
+        # Action buttons
+        buttons_layout = MDBoxLayout(
+            orientation="horizontal",
+            size_hint_y=None,
+            height="40dp",
+            spacing="10dp"
+        )
+
+        edit_btn = MDRaisedButton(
+            text="Edit",
+            size_hint_x=0.5,
+            on_release=lambda x, p=product: self.edit_product(p)
+        )
+
+        delete_btn = MDRaisedButton(
+            text="Delete",
+            size_hint_x=0.5,
+            md_bg_color=(0.8, 0.2, 0.2, 1),
+            on_release=lambda x, p=product: self.delete_product(p)
+        )
+
+        buttons_layout.add_widget(edit_btn)
+        buttons_layout.add_widget(delete_btn)
+
+        # Add all to main layout
+        main_layout.add_widget(title_layout)
+        main_layout.add_widget(details_layout)
+        main_layout.add_widget(buttons_layout)
+
+        card.add_widget(main_layout)
+        self.ids.products_container.add_widget(card)
+
+    def edit_product(self, product):
+        """Navigate to edit product screen (placeholder)"""
+        show_snackbar("Edit functionality coming soon!")
+
+    def delete_product(self, product):
+        """Delete a product"""
+        from kivymd.uix.dialog import MDDialog
+        from kivymd.uix.button import MDFlatButton
+
+        def delete_callback(instance):
+            try:
+                # Note: Need to add delete_product method to db_manager
+                # For now, just show message
+                show_snackbar(f"Delete functionality for {product[2]} coming soon!")
+                dialog.dismiss()
+            except Exception as e:
+                show_snackbar("Error deleting product")
+
+        def cancel_callback(instance):
+            dialog.dismiss()
+
+        dialog = MDDialog(
+            title="Delete Product",
+            text=f"Are you sure you want to delete '{product[2]}'?",
+            buttons=[
+                MDFlatButton(text="Cancel", on_release=cancel_callback),
+                MDFlatButton(text="Delete", on_release=delete_callback)
+            ]
+        )
+        dialog.open()
+
     def go_back(self):
         self.app.go_back_to_dashboard()
 
