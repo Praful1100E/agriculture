@@ -228,10 +228,14 @@ Builder.load_string("""
         MDTopAppBar:
             title: "📋 Orders"
             left_action_items: [["arrow-left", lambda x: root.go_back()]]
-        MDLabel:
-            text: "Your order history will appear here."
-            halign: "center"
-            font_style: "Subtitle1"
+        MDScrollView:
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: "10dp"
+                padding: "15dp"
+                size_hint_y: None
+                height: self.minimum_height
+                id: orders_container
 """)
 
 class SchemesScreen(Screen):
@@ -316,23 +320,29 @@ class ProfileScreen(Screen):
 
     def load_statistics(self, phone, role):
         """Load user statistics"""
+        print(f"DEBUG: Loading statistics for {role} - phone: {phone}")
         try:
             if role == "seller":
                 # Count products
                 products = self.app.db_manager.get_user_products(phone)
+                print(f"DEBUG: Found {len(products)} products for seller")
                 self.ids.products_count.text = str(len(products))
 
                 # Count orders (seller orders)
                 orders = self.app.db_manager.get_user_orders(phone, role)
+                print(f"DEBUG: Found {len(orders)} orders for seller")
                 self.ids.orders_count.text = str(len(orders))
             else:
                 # For buyers, show different stats
                 self.ids.products_count.text = "N/A"
                 orders = self.app.db_manager.get_user_orders(phone, role)
+                print(f"DEBUG: Found {len(orders)} orders for buyer")
                 self.ids.orders_count.text = str(len(orders))
 
         except Exception as e:
-            print(f"Error loading statistics: {e}")
+            print(f"ERROR: Error loading statistics: {e}")
+            import traceback
+            traceback.print_exc()
             self.ids.products_count.text = "0"
             self.ids.orders_count.text = "0"
 
@@ -443,6 +453,168 @@ class OrdersScreen(Screen):
     def __init__(self, app=None, **kwargs):
         super().__init__(**kwargs)
         self.app = app
-    
+
+    def on_enter(self):
+        self.load_orders()
+
+    def load_orders(self):
+        """Load and display user orders"""
+        container = self.ids.orders_container
+        container.clear_widgets()
+
+        if not self.app.store.exists("session"):
+            from kivymd.uix.label import MDLabel
+            no_session_label = MDLabel(
+                text="Please login to view your orders.",
+                halign="center",
+                font_style="Subtitle1",
+                theme_text_color="Secondary"
+            )
+            container.add_widget(no_session_label)
+            return
+
+        session = self.app.store.get("session")
+        phone = session["phone"]
+        role = session["role"]
+
+        try:
+            orders = self.app.db_manager.get_user_orders(phone, role)
+
+            if not orders:
+                from kivymd.uix.label import MDLabel
+                no_orders_label = MDLabel(
+                    text="No orders found.\\n\\nYour order history will appear here once you place orders.",
+                    halign="center",
+                    font_style="Subtitle1",
+                    theme_text_color="Secondary"
+                )
+                container.add_widget(no_orders_label)
+                return
+
+            from kivymd.uix.card import MDCard
+            from kivymd.uix.boxlayout import MDBoxLayout
+            from kivymd.uix.label import MDLabel
+
+            for order in orders:
+                # Unpack order data based on role
+                if role == "seller":
+                    order_id, order_number, buyer_phone, seller_phone, product_id, quantity, unit_price, total_amount, status, delivery_address, payment_method, notes, created_at, delivered_at, product_name, buyer_name = order
+                    other_party = buyer_name
+                    other_party_label = "Buyer"
+                else:
+                    order_id, order_number, buyer_phone, seller_phone, product_id, quantity, unit_price, total_amount, status, delivery_address, payment_method, notes, created_at, delivered_at, product_name, seller_name = order
+                    other_party = seller_name
+                    other_party_label = "Seller"
+
+                card = MDCard(
+                    size_hint_y=None,
+                    height="150dp",
+                    elevation=5,
+                    radius=[10],
+                    padding="15dp"
+                )
+
+                layout = MDBoxLayout(orientation="vertical", spacing="5dp")
+
+                # Order number and status
+                header_layout = MDBoxLayout(orientation="horizontal", size_hint_y=None, height="30dp")
+                order_label = MDLabel(
+                    text=f"Order #{order_number}",
+                    font_style="H6",
+                    theme_text_color="Primary",
+                    size_hint_x=0.6
+                )
+
+                status_label = MDLabel(
+                    text=status.title(),
+                    font_style="Body2",
+                    theme_text_color="Custom",
+                    text_color=self.get_status_color(status),
+                    halign="right",
+                    size_hint_x=0.4
+                )
+
+                header_layout.add_widget(order_label)
+                header_layout.add_widget(status_label)
+
+                # Product and quantity
+                product_layout = MDBoxLayout(orientation="horizontal", size_hint_y=None, height="30dp")
+                product_name_label = MDLabel(
+                    text=f"{product_name}",
+                    font_style="Subtitle1",
+                    theme_text_color="Secondary",
+                    size_hint_x=0.6
+                )
+
+                quantity_label = MDLabel(
+                    text=f"Qty: {quantity}",
+                    font_style="Body2",
+                    theme_text_color="Secondary",
+                    halign="right",
+                    size_hint_x=0.4
+                )
+
+                product_layout.add_widget(product_name_label)
+                product_layout.add_widget(quantity_label)
+
+                # Amount and date
+                details_layout = MDBoxLayout(orientation="horizontal", size_hint_y=None, height="30dp")
+                amount_label = MDLabel(
+                    text=f"₹{total_amount:.2f}",
+                    font_style="H6",
+                    theme_text_color="Primary",
+                    size_hint_x=0.5
+                )
+
+                date_label = MDLabel(
+                    text=created_at.split(' ')[0],  # Show only date
+                    font_style="Body2",
+                    theme_text_color="Secondary",
+                    halign="right",
+                    size_hint_x=0.5
+                )
+
+                details_layout.add_widget(amount_label)
+                details_layout.add_widget(date_label)
+
+                # Other party info
+                party_label = MDLabel(
+                    text=f"{other_party_label}: {other_party}",
+                    font_style="Caption",
+                    theme_text_color="Secondary",
+                    size_hint_y=None,
+                    height="20dp"
+                )
+
+                layout.add_widget(header_layout)
+                layout.add_widget(product_layout)
+                layout.add_widget(details_layout)
+                layout.add_widget(party_label)
+
+                card.add_widget(layout)
+                container.add_widget(card)
+
+        except Exception as e:
+            print(f"Error loading orders: {e}")
+            from kivymd.uix.label import MDLabel
+            error_label = MDLabel(
+                text="Error loading orders. Please try again.",
+                halign="center",
+                font_style="Subtitle1",
+                theme_text_color="Error"
+            )
+            container.add_widget(error_label)
+
+    def get_status_color(self, status):
+        """Get color for order status"""
+        status_colors = {
+            "pending": (1, 0.5, 0, 1),    # Orange
+            "confirmed": (0, 0.5, 1, 1),  # Blue
+            "shipped": (0.5, 0, 1, 1),    # Purple
+            "delivered": (0, 0.8, 0, 1),  # Green
+            "cancelled": (0.8, 0, 0, 1)   # Red
+        }
+        return status_colors.get(status.lower(), (0.5, 0.5, 0.5, 1))  # Gray default
+
     def go_back(self):
         self.app.go_back_to_dashboard()

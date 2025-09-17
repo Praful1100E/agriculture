@@ -138,21 +138,25 @@ Builder.load_string("""
                         spacing: "6dp"
                         
                         MDLabel:
-                            text: "User ID"
+                            text: "Phone Number"
                             font_style: "Subtitle2"
                             font_size: "14sp"
                             size_hint_y: None
                             height: "18dp"
                             theme_text_color: "Custom"
                             text_color: 0.3, 0.3, 0.3, 1
-                        
+
                         MDTextField:
                             id: phone
+                            hint_text: "Enter your phone number"
+                            helper_text: "10-digit mobile number"
+                            helper_text_mode: "persistent"
                             size_hint_y: None
-                            height: "48dp"
+                            height: "60dp"
                             font_size: "16sp"
                             multiline: False
                             max_text_length: 10
+                            input_filter: "int"
                             line_color_normal: 0.8, 0.8, 0.8, 1
                             line_color_focus: 0.15, 0.7, 0.15, 1
                             line_width: 1.5

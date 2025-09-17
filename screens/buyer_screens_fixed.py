@@ -1,7 +1,39 @@
 # screens/buyer_screens.py - Buyer Screens (FIXED)
 from kivy.uix.screenmanager import Screen
 from kivy.lang import Builder
-from kivymd.uix.snackbar import Snackbar
+
+# Use the newer MDSnackbar instead of deprecated Snackbar
+try:
+    from kivymd.uix.snackbar import MDSnackbar
+    from kivymd.uix.label import MDLabel
+    use_md_snackbar = True
+except ImportError:
+    from kivymd.uix.snackbar import Snackbar
+    use_md_snackbar = False
+
+def show_message(message):
+    """Universal message function for all KivyMD versions"""
+    try:
+        if use_md_snackbar:
+            snackbar = MDSnackbar(
+                MDLabel(
+                    text=message,
+                    theme_text_color="Custom",
+                    text_color=(1, 1, 1, 1)
+                ),
+                y="24dp",
+                pos_hint={"center_x": 0.5},
+                size_hint_x=0.9,
+                duration=3
+            )
+            snackbar.open()
+        else:
+            snackbar = Snackbar()
+            snackbar.text = message
+            snackbar.duration = 3
+            snackbar.open()
+    except Exception as e:
+        print(f"MESSAGE: {message}")
 
 Builder.load_string("""
 <BuyerDashboard>:
@@ -66,15 +98,10 @@ Builder.load_string("""
         MDTopAppBar:
             title: "🛒 Shopping Cart"
             left_action_items: [["arrow-left", lambda x: root.go_back()]]
-            right_action_items: [["delete", lambda x: root.clear_cart()]]
-        MDScrollView:
-            MDBoxLayout:
-                orientation: "vertical"
-                spacing: "10dp"
-                padding: "15dp"
-                size_hint_y: None
-                height: self.minimum_height
-                id: cart_container
+        MDLabel:
+            text: "Your cart items will appear here.\\n\\nAdd products to see them in your cart."
+            halign: "center"
+            font_style: "Subtitle1"
 
 <CheckoutScreen>:
     MDBoxLayout:
@@ -92,28 +119,25 @@ class BuyerDashboard(Screen):
     def __init__(self, app=None, **kwargs):
         super().__init__(**kwargs)
         self.app = app
-    
+
     def load_products(self):
         pass
-    
+
     def go_to_cart(self):
         self.app.root.current = "cart"
-    
+
     def go_to_profile(self):
         self.app.root.current = "profile"
-    
+
     def logout(self):
         self.app.logout()
-    
+
     def browse_products(self):
-        self.app.root.current = "marketplace"
-    
+        show_message("Product browsing coming soon!")
+
     def go_to_orders(self):
-        if not self.app.store.exists("session"):
-            show_snackbar("Please login first")
-            return
         self.app.root.current = "orders"
-    
+
     def go_to_schemes(self):
         self.app.root.current = "schemes"
 
@@ -121,100 +145,14 @@ class CartScreen(Screen):
     def __init__(self, app=None, **kwargs):
         super().__init__(**kwargs)
         self.app = app
-    
-    def on_enter(self):
-        self.load_cart_items()
-    
-    def load_cart_items(self):
-        container = self.ids.cart_container
-        container.clear_widgets()
-        
-        if not self.app.store.exists("session"):
-            show_snackbar("Please login first")
-            return
-        
-        buyer_phone = self.app.store.get("session")["phone"]
-        items = self.app.db_manager.get_cart_items(buyer_phone)
-        
-        if not items:
-            from kivymd.uix.label import MDLabel
-            no_items_label = MDLabel(
-                text="Your cart is empty. Add products to see them here.",
-                halign="center",
-                font_style="Subtitle1",
-                theme_text_color="Secondary",
-                size_hint_y=None,
-                height="40dp"
-            )
-            container.add_widget(no_items_label)
-            return
-        
-        from kivymd.uix.card import MDCard
-        from kivymd.uix.boxlayout import MDBoxLayout
-        from kivymd.uix.label import MDLabel
-        
-        for item in items:
-            cart_id, buyer_phone, product_id, quantity, added_at, product_name, price, unit, seller_name = item
-            
-            card = MDCard(
-                size_hint_y=None,
-                height="100dp",
-                elevation=5,
-                radius=[10],
-                padding="10dp"
-            )
-            
-            layout = MDBoxLayout(orientation="horizontal", spacing="10dp")
-            
-            name_label = MDLabel(
-                text=f"{product_name}",
-                font_style="H6",
-                theme_text_color="Primary",
-                size_hint_x=0.5
-            )
-            
-            qty_label = MDLabel(
-                text=f"Qty: {quantity} {unit}",
-                font_style="Body1",
-                theme_text_color="Secondary",
-                size_hint_x=0.3
-            )
-            
-            price_label = MDLabel(
-                text=f"₹{price * quantity:.2f}",
-                font_style="Body1",
-                theme_text_color="Primary",
-                size_hint_x=0.2,
-                halign="right"
-            )
-            
-            layout.add_widget(name_label)
-            layout.add_widget(qty_label)
-            layout.add_widget(price_label)
-            
-            card.add_widget(layout)
-            container.add_widget(card)
-    
+
     def go_back(self):
         self.app.go_back_to_dashboard()
-    
-    def clear_cart(self):
-        if not self.app.store.exists("session"):
-            show_snackbar("Please login first")
-            return
-        
-        buyer_phone = self.app.store.get("session")["phone"]
-        success = self.app.db_manager.clear_cart(buyer_phone)
-        if success:
-            show_snackbar("Cart cleared")
-            self.load_cart_items()
-        else:
-            show_snackbar("Failed to clear cart")
 
 class CheckoutScreen(Screen):
     def __init__(self, app=None, **kwargs):
         super().__init__(**kwargs)
         self.app = app
-    
+
     def go_to_cart(self):
         self.app.root.current = "cart"

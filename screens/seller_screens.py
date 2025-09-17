@@ -232,12 +232,18 @@ class ProductListScreen(Screen):
 
     def load_products(self):
         """Load and display user's products"""
+        print("DEBUG: load_products called")
         if not self.app.store.exists("session"):
             show_snackbar("Please login first")
+            print("DEBUG: No session found")
             return
 
         phone = self.app.store.get("session")["phone"]
+        role = self.app.store.get("session")["role"]
+        print(f"DEBUG: Loading products for {role} - phone: {phone}")
+
         products = self.app.db_manager.get_user_products(phone)
+        print(f"DEBUG: Found {len(products)} products")
 
         # Clear existing products
         self.ids.products_container.clear_widgets()
@@ -252,11 +258,14 @@ class ProductListScreen(Screen):
                 theme_text_color="Secondary"
             )
             self.ids.products_container.add_widget(empty_label)
+            print("DEBUG: Showing empty state")
             return
 
         # Display products
-        for product in products:
+        for i, product in enumerate(products):
+            print(f"DEBUG: Adding product {i+1}: {product[2]}")
             self.add_product_card(product)
+        print("DEBUG: Finished loading products")
 
     def add_product_card(self, product):
         """Add a product card to the container"""
@@ -531,6 +540,9 @@ class AddProductScreen(Screen):
                 self.ids.description.text = ""
 
                 show_snackbar(f"✅ {name} added successfully!")
+
+                # Navigate back to product list and refresh
+                self.app.root.current = "product_list"
             else:
                 show_snackbar("Failed to add product")
 
