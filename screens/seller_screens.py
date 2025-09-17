@@ -295,7 +295,7 @@ class ProductListScreen(Screen):
         )
 
         category_label = MDLabel(
-            text=f"{product[4]}",  # category
+            text=f"{product[3]}",  # category
             font_style="Caption",
             halign="right",
             theme_text_color="Secondary",
@@ -315,7 +315,7 @@ class ProductListScreen(Screen):
 
         # Price
         price_label = MDLabel(
-            text=f"₹{product[7]:.2f}/{product[6]}",  # price/unit
+            text=f"₹{product[6]:.2f}/{product[5]}",  # price/unit
             font_style="Subtitle1",
             theme_text_color="Primary",
             size_hint_x=0.3
@@ -323,7 +323,7 @@ class ProductListScreen(Screen):
 
         # Stock
         stock_label = MDLabel(
-            text=f"Stock: {product[8]} {product[6]}",  # stock_qty unit
+            text=f"Stock: {product[7]} {product[5]}",  # stock_qty unit
             font_style="Body2",
             size_hint_x=0.4
         )
@@ -341,9 +341,9 @@ class ProductListScreen(Screen):
         details_layout.add_widget(status_label)
 
         # Description (if exists)
-        if product[9]:  # description
+        if product[8]:  # description
             desc_label = MDLabel(
-                text=product[9][:100] + "..." if len(product[9]) > 100 else product[9],
+                text=product[8][:100] + "..." if len(product[8]) > 100 else product[8],
                 font_style="Body2",
                 theme_text_color="Secondary",
                 size_hint_y=None,
