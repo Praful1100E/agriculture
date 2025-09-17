@@ -1,7 +1,9 @@
 # screens/seller_screens.py - KivyMD 1.2.0 Compatible
 from kivy.uix.screenmanager import Screen
 from kivy.lang import Builder
+from kivy.metrics import dp
 from kivymd.uix.snackbar import Snackbar
+from kivymd.uix.menu import MDDropdownMenu
 
 def show_snackbar(message):
     """Helper function for KivyMD 1.2.0 compatibility"""
@@ -119,14 +121,14 @@ Builder.load_string("""
                     size_hint_y: None
                     height: "70dp"
                 
-                MDTextField:
-                    id: category
-                    hint_text: "Category"
-                    helper_text: "e.g., Vegetables, Fruits, Grains"
-                    helper_text_mode: "on_focus"
+                MDDropDownItem:
+                    id: category_dropdown
+                    text: "Select Category"
+                    pos_hint: {"center_x": 0.5}
                     size_hint_y: None
-                    height: "70dp"
-                
+                    height: "56dp"
+                    on_release: root.open_category_menu()
+
                 MDTextField:
                     id: variety
                     hint_text: "Variety (Optional)"
@@ -134,7 +136,7 @@ Builder.load_string("""
                     helper_text_mode: "on_focus"
                     size_hint_y: None
                     height: "70dp"
-                
+
                 MDTextField:
                     id: quantity
                     hint_text: "Quantity Available"
@@ -142,14 +144,14 @@ Builder.load_string("""
                     helper_text_mode: "on_focus"
                     size_hint_y: None
                     height: "70dp"
-                
-                MDTextField:
-                    id: unit
-                    hint_text: "Unit"
-                    helper_text: "e.g., kg, quintal, dozen"
-                    helper_text_mode: "on_focus"
+
+                MDDropDownItem:
+                    id: unit_dropdown
+                    text: "Select Unit"
+                    pos_hint: {"center_x": 0.5}
                     size_hint_y: None
-                    height: "70dp"
+                    height: "56dp"
+                    on_release: root.open_unit_menu()
                 
                 MDTextField:
                     id: price
@@ -227,7 +229,63 @@ class AddProductScreen(Screen):
     def __init__(self, app=None, **kwargs):
         super().__init__(**kwargs)
         self.app = app
-    
+        self.category_menu = None
+        self.unit_menu = None
+
+    def on_enter(self):
+        self.setup_dropdowns()
+
+    def setup_dropdowns(self):
+        # Category dropdown
+        categories = ["Vegetables", "Fruits", "Grains", "Pulses", "Spices", "Dairy", "Other"]
+        menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": category,
+                "height": dp(56),
+                "on_release": lambda x=category: self.set_category(x),
+            } for category in categories
+        ]
+        self.category_menu = MDDropdownMenu(
+            caller=self.ids.category_dropdown,
+            items=menu_items,
+            position="center",
+            width_mult=4,
+        )
+
+        # Unit dropdown
+        units = ["kg", "quintal", "ton", "litre", "dozen", "piece", "bundle"]
+        menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": unit,
+                "height": dp(56),
+                "on_release": lambda x=unit: self.set_unit(x),
+            } for unit in units
+        ]
+        self.unit_menu = MDDropdownMenu(
+            caller=self.ids.unit_dropdown,
+            items=menu_items,
+            position="center",
+            width_mult=4,
+        )
+
+    def open_category_menu(self):
+        if self.category_menu:
+            self.category_menu.open()
+
+    def open_unit_menu(self):
+        if self.unit_menu:
+            self.unit_menu.open()
+
+    def set_category(self, category):
+        self.ids.category_dropdown.text = category
+        self.category_menu.dismiss()
+
+    def set_unit(self, unit):
+        self.ids.unit_dropdown.text = unit
+        self.unit_menu.dismiss()
+
     def go_back(self):
         self.app.go_back_to_dashboard()
 
@@ -235,46 +293,55 @@ class AddProductScreen(Screen):
         if not self.app.store.exists("session"):
             show_snackbar("Please login first")
             return
-            
+
         phone = self.app.store.get("session")["phone"]
-        
+
         try:
             name = self.ids.product_name.text.strip()
-            category = self.ids.category.text.strip()
+            category = self.ids.category_dropdown.text
             variety = self.ids.variety.text.strip()
             quantity = self.ids.quantity.text.strip()
-            unit = self.ids.unit.text.strip()
+            unit = self.ids.unit_dropdown.text
             price = self.ids.price.text.strip()
             description = self.ids.description.text.strip()
-            
+
+            if category == "Select Category":
+                category = ""
+            if unit == "Select Unit":
+                unit = ""
+
             if not all([name, category, quantity, unit, price]):
                 show_snackbar("Please fill all required fields")
                 return
-            
+
             try:
                 quantity = float(quantity)
                 price = float(price)
             except ValueError:
                 show_snackbar("Quantity and price must be valid numbers")
                 return
-            
+
             if quantity <= 0 or price <= 0:
                 show_snackbar("Quantity and price must be positive")
                 return
-            
+
             product_id = self.app.db_manager.add_product(
                 phone, name, category, variety, unit, price, quantity, description
             )
-            
+
             if product_id:
-                for field in [self.ids.product_name, self.ids.category, self.ids.variety, 
-                             self.ids.quantity, self.ids.unit, self.ids.price, self.ids.description]:
-                    field.text = ""
-                
+                self.ids.product_name.text = ""
+                self.ids.category_dropdown.text = "Select Category"
+                self.ids.variety.text = ""
+                self.ids.quantity.text = ""
+                self.ids.unit_dropdown.text = "Select Unit"
+                self.ids.price.text = ""
+                self.ids.description.text = ""
+
                 show_snackbar(f"✅ {name} added successfully!")
             else:
                 show_snackbar("Failed to add product")
-                
+
         except Exception as e:
             show_snackbar("Error adding product")
 

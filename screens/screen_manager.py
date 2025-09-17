@@ -14,8 +14,8 @@ def create_screen_manager(app):
     # Add all screens
     sm.add_widget(LoginScreen(name="login", app=app))
     sm.add_widget(RegisterScreen(name="register", app=app))
-    sm.add_widget(SellerDashboard(name="seller", app=app))
-    sm.add_widget(BuyerDashboard(name="buyer", app=app))
+    sm.add_widget(SellerDashboard(name="seller_dashboard", app=app))
+    sm.add_widget(BuyerDashboard(name="buyer_dashboard", app=app))
     sm.add_widget(ProductListScreen(name="product_list", app=app))
     sm.add_widget(AddProductScreen(name="add_product", app=app))
     sm.add_widget(BulkUpdateScreen(name="bulk_update", app=app))
