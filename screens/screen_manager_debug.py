@@ -1,10 +1,10 @@
-# screens/screen_manager.py - Screen Manager and Navigation
+# screens/screen_manager_debug.py - Debug version
 from kivy.uix.screenmanager import ScreenManager, NoTransition
 
-from screens.auth_screens import LoginScreen, RegisterScreen
-from screens.seller_screens import SellerDashboard, ProductListScreen, AddProductScreen, BulkUpdateScreen
+from screens.auth_screens_debug import LoginScreen, RegisterScreen
+from screens.seller_screens_debug import ProductListScreen
+from screens.seller_screens import SellerDashboard, AddProductScreen, BulkUpdateScreen
 from screens.buyer_screens import BuyerDashboard, CartScreen, CheckoutScreen
-from screens.marketplace_screens import MarketplaceScreen
 from screens.common_screens import SchemesScreen, ProfileScreen, MarketPricesScreen, OrdersScreen
 from screens.address_screens import AddressScreen, PaymentMethodScreen
 
@@ -17,7 +17,6 @@ def create_screen_manager(app):
     sm.add_widget(RegisterScreen(name="register", app=app))
     sm.add_widget(SellerDashboard(name="seller_dashboard", app=app))
     sm.add_widget(BuyerDashboard(name="buyer_dashboard", app=app))
-    sm.add_widget(MarketplaceScreen(name="marketplace", app=app))
     sm.add_widget(ProductListScreen(name="product_list", app=app))
     sm.add_widget(AddProductScreen(name="add_product", app=app))
     sm.add_widget(BulkUpdateScreen(name="bulk_update", app=app))

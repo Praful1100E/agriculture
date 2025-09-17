@@ -49,39 +49,15 @@ Builder.load_string("""
                         
                         Widget:  # Left spacer
                         
-                        # Perfect Circular Logo with Masking
-                        MDCard:
+                        # Simple Logo
+                        AsyncImage:
+                            id: logo_main
+                            source: "images/logo.png"
                             size_hint: None, None
                             size: "60dp", "60dp"
                             pos_hint: {"center_x": 0.5}
-                            md_bg_color: 0.2, 0.7, 0.2, 1  # Green background
-                            elevation: 4
-                            radius: [30]  # Perfect circle radius
-                            
-                            # CIRCULAR IMAGE CLIPPING - This is the key!
-                            AsyncImage:
-                                id: logo_main
-                                source: "images/logo.png"
-                                size_hint: 1, 1  # Fill the entire card
-                                pos_hint: {"center_x": 0.5, "center_y": 0.5}
-                                keep_ratio: False  # Let it fill the circle completely
-                                allow_stretch: True
-                                mipmap: True
-                                
-                                # CRITICAL: Circular canvas clipping
-                                canvas.before:
-                                    PushMatrix
-                                    # Create circular clipping mask
-                                    StencilPush
-                                    Ellipse:
-                                        pos: self.pos
-                                        size: self.size
-                                    StencilUse
-                                
-                                canvas.after:
-                                    StencilUnUse
-                                    StencilPop
-                                    PopMatrix
+                            keep_ratio: True
+                            allow_stretch: True
                         
                         Widget:  # Right spacer
                     
@@ -162,22 +138,25 @@ Builder.load_string("""
                         spacing: "6dp"
                         
                         MDLabel:
-                            text: "User ID"
+                            text: "Phone Number"
                             font_style: "Subtitle2"
                             font_size: "14sp"
                             size_hint_y: None
                             height: "18dp"
                             theme_text_color: "Custom"
                             text_color: 0.3, 0.3, 0.3, 1
-                        
+
                         MDTextField:
                             id: phone
+                            hint_text: "Enter your phone number"
+                            helper_text: "10-digit mobile number"
+                            helper_text_mode: "persistent"
                             size_hint_y: None
-                            height: "36dp"
+                            height: "60dp"
                             font_size: "16sp"
                             multiline: False
-                            input_filter: "int"
                             max_text_length: 10
+                            input_filter: "int"
                             line_color_normal: 0.8, 0.8, 0.8, 1
                             line_color_focus: 0.15, 0.7, 0.15, 1
                             line_width: 1.5
@@ -202,7 +181,7 @@ Builder.load_string("""
                             id: password
                             password: True
                             size_hint_y: None
-                            height: "36dp"
+                            height: "48dp"
                             font_size: "16sp"
                             multiline: False
                             line_color_normal: 0.8, 0.8, 0.8, 1
@@ -324,44 +303,22 @@ Builder.load_string("""
                         spacing: "6dp"
                         padding: "0dp", "16dp", "0dp", "6dp"
                         
-                        # Logo with perfect circular clipping
+                        # Simple Logo
                         MDBoxLayout:
                             size_hint_y: None
                             height: "50dp"
-                            
+
                             Widget:
-                            
-                            MDCard:
+
+                            AsyncImage:
+                                id: reg_logo
+                                source: "images/logo.png"
                                 size_hint: None, None
                                 size: "40dp", "40dp"
                                 pos_hint: {"center_x": 0.5}
-                                md_bg_color: 0.2, 0.7, 0.2, 1
-                                elevation: 3
-                                radius: [20]
-                                
-                                AsyncImage:
-                                    id: reg_logo
-                                    source: "images/logo.png"
-                                    size_hint: 1, 1
-                                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
-                                    keep_ratio: False
-                                    allow_stretch: True
-                                    mipmap: True
-                                    
-                                    # Circular clipping for registration logo
-                                    canvas.before:
-                                        PushMatrix
-                                        StencilPush
-                                        Ellipse:
-                                            pos: self.pos
-                                            size: self.size
-                                        StencilUse
-                                    
-                                    canvas.after:
-                                        StencilUnUse
-                                        StencilPop
-                                        PopMatrix
-                            
+                                keep_ratio: True
+                                allow_stretch: True
+
                             Widget:
                         
                         # App name and title

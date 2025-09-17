@@ -232,12 +232,18 @@ class ProductListScreen(Screen):
 
     def load_products(self):
         """Load and display user's products"""
+        print("DEBUG: load_products called")
         if not self.app.store.exists("session"):
             show_snackbar("Please login first")
+            print("DEBUG: No session found")
             return
 
         phone = self.app.store.get("session")["phone"]
+        role = self.app.store.get("session")["role"]
+        print(f"DEBUG: Loading products for {role} - phone: {phone}")
+
         products = self.app.db_manager.get_user_products(phone)
+        print(f"DEBUG: Found {len(products)} products")
 
         # Clear existing products
         self.ids.products_container.clear_widgets()
@@ -252,11 +258,14 @@ class ProductListScreen(Screen):
                 theme_text_color="Secondary"
             )
             self.ids.products_container.add_widget(empty_label)
+            print("DEBUG: Showing empty state")
             return
 
         # Display products
-        for product in products:
+        for i, product in enumerate(products):
+            print(f"DEBUG: Adding product {i+1}: {product[2]}")
             self.add_product_card(product)
+        print("DEBUG: Finished loading products")
 
     def add_product_card(self, product):
         """Add a product card to the container"""
@@ -295,7 +304,7 @@ class ProductListScreen(Screen):
         )
 
         category_label = MDLabel(
-            text=f"{product[4]}",  # category
+            text=f"{product[3]}",  # category
             font_style="Caption",
             halign="right",
             theme_text_color="Secondary",
@@ -315,7 +324,7 @@ class ProductListScreen(Screen):
 
         # Price
         price_label = MDLabel(
-            text=f"₹{product[7]:.2f}/{product[6]}",  # price/unit
+            text=f"₹{product[6]:.2f}/{product[5]}",  # price/unit
             font_style="Subtitle1",
             theme_text_color="Primary",
             size_hint_x=0.3
@@ -323,7 +332,7 @@ class ProductListScreen(Screen):
 
         # Stock
         stock_label = MDLabel(
-            text=f"Stock: {product[8]} {product[6]}",  # stock_qty unit
+            text=f"Stock: {product[7]} {product[5]}",  # stock_qty unit
             font_style="Body2",
             size_hint_x=0.4
         )
@@ -341,9 +350,9 @@ class ProductListScreen(Screen):
         details_layout.add_widget(status_label)
 
         # Description (if exists)
-        if product[9]:  # description
+        if product[8]:  # description
             desc_label = MDLabel(
-                text=product[9][:100] + "..." if len(product[9]) > 100 else product[9],
+                text=product[8][:100] + "..." if len(product[8]) > 100 else product[8],
                 font_style="Body2",
                 theme_text_color="Secondary",
                 size_hint_y=None,
@@ -531,6 +540,9 @@ class AddProductScreen(Screen):
                 self.ids.description.text = ""
 
                 show_snackbar(f"✅ {name} added successfully!")
+
+                # Navigate back to product list and refresh
+                self.app.root.current = "product_list"
             else:
                 show_snackbar("Failed to add product")
 

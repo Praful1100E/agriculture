@@ -279,6 +279,20 @@ class DatabaseManager:
         finally:
             conn.close()
 
+    def get_all_products(self):
+        """Get all active products from all sellers for marketplace"""
+        conn = self.get_connection()
+        c = conn.cursor()
+        try:
+            c.execute("SELECT * FROM products WHERE status = 'active' ORDER BY created_at DESC")
+            products = c.fetchall()
+            return products
+        except Exception as e:
+            print(f"Error getting all products: {e}")
+            return []
+        finally:
+            conn.close()
+
     def add_product(self, seller_phone, name, category, variety, unit, price, stock_qty, description=""):
         conn = self.get_connection()
         c = conn.cursor()
@@ -420,6 +434,20 @@ class DatabaseManager:
             return True
         except Exception as e:
             print(f"Error recording price: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def clear_cart(self, buyer_phone):
+        """Clear all items from buyer's cart"""
+        conn = self.get_connection()
+        c = conn.cursor()
+        try:
+            c.execute("DELETE FROM cart WHERE buyer_phone = ?", (buyer_phone,))
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error clearing cart: {e}")
             return False
         finally:
             conn.close()
