@@ -101,7 +101,29 @@ Builder.load_string("""
                                 text: ""
                                 font_style: "Body1"
                                 size_hint_x: 0.7
-                        
+
+                        MDBoxLayout:
+                            orientation: "horizontal"
+                            size_hint_y: None
+                            height: "40dp"
+                            MDLabel:
+                                text: "Name:"
+                                font_style: "Body1"
+                                bold: True
+                                size_hint_x: 0.3
+                            MDLabel:
+                                id: profile_name_value
+                                text: ""
+                                font_style: "Body1"
+                                size_hint_x: 0.7
+                                opacity: 1
+                            MDTextField:
+                                id: profile_name_input
+                                hint_text: "Enter your name"
+                                font_style: "Body1"
+                                size_hint_x: 0.7
+                                opacity: 0
+
                         MDBoxLayout:
                             orientation: "horizontal"
                             size_hint_y: None
@@ -116,7 +138,14 @@ Builder.load_string("""
                                 text: ""
                                 font_style: "Body1"
                                 size_hint_x: 0.7
-                        
+                                opacity: 1
+                            MDTextField:
+                                id: profile_email_input
+                                hint_text: "Enter your email"
+                                font_style: "Body1"
+                                size_hint_x: 0.7
+                                opacity: 0
+
                         MDBoxLayout:
                             orientation: "horizontal"
                             size_hint_y: None
@@ -131,6 +160,13 @@ Builder.load_string("""
                                 text: ""
                                 font_style: "Body1"
                                 size_hint_x: 0.7
+                                opacity: 1
+                            MDTextField:
+                                id: profile_location_input
+                                hint_text: "Enter your location"
+                                font_style: "Body1"
+                                size_hint_x: 0.7
+                                opacity: 0
 
                 MDCard:
                     size_hint_y: None
@@ -182,6 +218,7 @@ Builder.load_string("""
                                     theme_text_color: "Secondary"
 
                 MDRaisedButton:
+                    id: edit_button
                     text: "✏️ Edit Profile"
                     size_hint_y: None
                     height: "50dp"
@@ -269,6 +306,7 @@ class ProfileScreen(Screen):
     def __init__(self, app=None, **kwargs):
         super().__init__(**kwargs)
         self.app = app
+        self.edit_mode = False
 
     def on_enter(self):
         self.load_profile()
@@ -294,11 +332,19 @@ class ProfileScreen(Screen):
 
             if user_data:
                 name, email, location = user_data
-                self.ids.profile_name.text = name or "Unknown"
-                self.ids.profile_role.text = f"🌾 {role.title()}" if role == "seller" else f"🛒 {role.title()}"
-                self.ids.profile_phone.text = phone
-                self.ids.profile_email.text = self.mask_email(email) if email else "Not provided"
-                self.ids.profile_location.text = location or "Not specified"
+                if self.edit_mode:
+                    # In edit mode, populate text fields
+                    self.ids.profile_name_input.text = name or ""
+                    self.ids.profile_email_input.text = email or ""
+                    self.ids.profile_location_input.text = location or ""
+                else:
+                    # In view mode, show labels
+                    self.ids.profile_name.text = name or "Unknown"
+                    self.ids.profile_role.text = f"🌾 {role.title()}" if role == "seller" else f"🛒 {role.title()}"
+                    self.ids.profile_phone.text = phone
+                    self.ids.profile_name_value.text = name or "Unknown"
+                    self.ids.profile_email.text = self.mask_email(email) if email else "Not provided"
+                    self.ids.profile_location.text = location or "Not specified"
             else:
                 self.ids.profile_name.text = "User not found"
 
@@ -347,9 +393,61 @@ class ProfileScreen(Screen):
             self.ids.orders_count.text = "0"
 
     def edit_profile(self):
-        """Navigate to edit profile screen (placeholder)"""
+        """Toggle edit mode for profile"""
+        if not self.edit_mode:
+            self.edit_mode = True
+            self.show_edit_mode()
+        else:
+            # Save changes
+            self.save_profile_changes()
+
+    def show_edit_mode(self):
+        """Switch UI to edit mode"""
+        # Hide contact labels and show text inputs
+        self.ids.profile_phone.opacity = 0
+        self.ids.profile_name_value.opacity = 0
+        self.ids.profile_email.opacity = 0
+        self.ids.profile_location.opacity = 0
+
+        self.ids.profile_name_input.opacity = 1
+        self.ids.profile_email_input.opacity = 1
+        self.ids.profile_location_input.opacity = 1
+
+        # Change button text to Save
+        self.ids.edit_button.text = "💾 Save Profile"
+
+    def hide_edit_mode(self):
+        """Switch UI back to view mode"""
+        self.ids.profile_phone.opacity = 1
+        self.ids.profile_name_value.opacity = 1
+        self.ids.profile_email.opacity = 1
+        self.ids.profile_location.opacity = 1
+
+        self.ids.profile_name_input.opacity = 0
+        self.ids.profile_email_input.opacity = 0
+        self.ids.profile_location_input.opacity = 0
+
+        # Change button text back to Edit
+        self.ids.edit_button.text = "✏️ Edit Profile"
+
+    def save_profile_changes(self):
+        """Save profile changes to database"""
+        session = self.app.store.get("session")
+        phone = session["phone"]
+
+        new_name = self.ids.profile_name_input.text.strip()
+        new_email = self.ids.profile_email_input.text.strip()
+        new_location = self.ids.profile_location_input.text.strip()
+
+        success = self.app.db_manager.update_user(phone, name=new_name, email=new_email, location=new_location)
         from kivymd.uix.snackbar import Snackbar
-        Snackbar(text="Edit profile functionality coming soon!").open()
+        if success:
+            Snackbar(text="Profile updated successfully!").open()
+            self.edit_mode = False
+            self.hide_edit_mode()
+            self.load_profile()
+        else:
+            Snackbar(text="Failed to update profile. Please try again.").open()
 
     def go_back(self):
         self.app.go_back_to_dashboard()
