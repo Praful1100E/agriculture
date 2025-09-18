@@ -452,6 +452,49 @@ class DatabaseManager:
         finally:
             conn.close()
 
+    def update_user(self, phone, name=None, email=None, location=None):
+        """Update user profile information"""
+        conn = self.get_connection()
+        c = conn.cursor()
+        try:
+            # Build update query dynamically based on provided fields
+            update_fields = []
+            values = []
+
+            if name is not None:
+                update_fields.append("name = ?")
+                values.append(name)
+            if email is not None:
+                update_fields.append("email = ?")
+                values.append(email)
+            if location is not None:
+                update_fields.append("location = ?")
+                values.append(location)
+
+            if not update_fields:
+                return False  # Nothing to update
+
+            # Add updated_at timestamp
+            update_fields.append("updated_at = CURRENT_TIMESTAMP")
+            values.append(phone)  # For WHERE clause
+
+            query = f"UPDATE users SET {', '.join(update_fields)} WHERE phone = ?"
+            c.execute(query, values)
+            conn.commit()
+
+            if c.rowcount > 0:
+                print(f"✅ User {phone} profile updated successfully")
+                return True
+            else:
+                print(f"❌ User {phone} not found")
+                return False
+
+        except Exception as e:
+            print(f"❌ Error updating user profile: {e}")
+            return False
+        finally:
+            conn.close()
+
     def reset_database(self):
         """EMERGENCY: Reset database completely - USE WITH CAUTION"""
         try:
